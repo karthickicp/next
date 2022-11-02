@@ -44,7 +44,7 @@ let data = [
   },
 ];
 
-const users = (req, res) => {
+const usersApi = (req, res) => {
   const reqUrl = req.url;
   const headers = {
     "Access-Control-Allow-Origin": "*" /* @dev First, read about security */,
@@ -52,11 +52,16 @@ const users = (req, res) => {
     // "Access-Control-Max-Age": 2592000, // 30 days
     /** add other headers as per requirement */
   };
+  console.log(req, "req");
+  //GET Users
   if (reqUrl === "/users") {
     res.setHeader("Content-Type", "application/json");
     res.writeHead(200, headers);
     res.end(JSON.stringify(data));
   }
+
+  //DELETE User
+
   if (reqUrl.includes("/user/delete")) {
     let query = url.parse(reqUrl, "id").query;
     let filteredData = data.filter((data) => data.id !== Number(query.id));
@@ -64,9 +69,8 @@ const users = (req, res) => {
     console.log(data, "data");
     res.setHeader("Content-Type", "text/html");
     res.writeHead(200, headers);
-    // res.statusText("user is deleted");
     res.end("user is deleted");
   }
 };
 
-module.exports = users;
+module.exports = usersApi;
