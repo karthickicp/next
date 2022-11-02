@@ -1,16 +1,41 @@
+import { Formik } from "formik";
 import { useEffect, useState } from "react";
-import { Button, Container, Modal, Table } from "react-bootstrap";
-import { deleteRequest, getRequest } from "../axios/requestConfig";
+import { Button, Container, Form, Modal, Table } from "react-bootstrap";
+import { deleteRequest, getRequest, postRequest } from "../axios/requestConfig";
 import { createEditModalProps, users } from "../types/users";
+import * as Yup from "yup"
+import axios from "axios";
 export default function Home() {
   const [users, setUsers] = useState<users[] | []>([]);
+  const getInitialValues = () => {
+    let initialValues: users = {
+      id: users.length + 1,
+      first_name: "",
+      last_name: "",
+      email: "",
+    };
+    if (createEditModal.type !== "create" && createEditModal.user) {
+      initialValues = {
+        id: createEditModal.user?.id,
+        first_name: createEditModal.user?.first_name,
+        last_name: createEditModal.user?.last_name,
+        email: createEditModal.user?.email,
+      };
+      return initialValues;
+    }
+    return initialValues;
+  };
 
-  const [createEditModalProps, setCreateEditModalProps] =
-    useState<createEditModalProps>({
-      open: false,
-      type: "",
-      user: null,
-    });
+  const userValidationSchema = Yup.object({
+    first_name: Yup.string().required("First name is requied"),
+    last_name: Yup.string().required("Last name is requied"),
+    email: Yup.string().email("invalid email address").required("Email is requied")
+  })
+  const [createEditModal, setCreateEditModal] = useState<createEditModalProps>({
+    open: false,
+    type: "create",
+    user: null,
+  });
   const getUsers = async () => {
     try {
       let usersData = await getRequest("/users");
@@ -33,8 +58,16 @@ export default function Home() {
       console.error(err);
     }
   };
+  const createUser = async (user: users) => {
+    try{
+      console.log(user, "user")
+      let response = await postRequest('users/create', user)
+    }catch(err){
+      console.error(err)
+    }
+  }
   const handleClose = () => {
-    setCreateEditModalProps((prev) => ({ ...prev, open: false }));
+    setCreateEditModal((prev) => ({ ...prev, open: false }));
   };
   useEffect(() => {
     getUsers();
@@ -45,7 +78,7 @@ export default function Home() {
         <h4 className="mb-0">Users</h4>
         <Button
           onClick={() =>
-            setCreateEditModalProps((prev) => ({
+            setCreateEditModal((prev) => ({
               ...prev,
               open: true,
               type: "create",
@@ -84,23 +117,61 @@ export default function Home() {
           </tbody>
         </Table>
       )}
-      <Modal show={createEditModalProps.open} onHide={handleClose}>
+      <Modal show={createEditModal.open} onHide={handleClose} >
         <Modal.Header closeButton>
           <Modal.Title>
-            {createEditModalProps.type === "create"
-              ? "Create User"
-              : "Edit User"}
+            {createEditModal.type === "create" ? "Create User" : "Edit User"}
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body>Woohoo, you're reading this text in a modal!</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleClose}>
-            Close
+        <Modal.Body>
+          <Formik
+            initialValues={getInitialValues()}
+            validationSchema= {userValidationSchema}
+            onSubmit={(values) => axios.post('http://localhost:5000/users/create', values)}
+          >
+            {({ values, handleChange,handleSubmit, errors, handleBlur, touched }) => (
+              <form action="http://localhost:5000/users/create" method="POST">
+                <>
+                <Form.Group className="mb-3" >
+                  <Form.Label>First Name</Form.Label>
+                  <Form.Control type="text" placeholder="First Name" name="first_name" value={values.first_name} onChange={handleChange} onBlur={handleBlur}/>
+                  {touched && errors &&  errors.first_name && (
+                    <Form.Text className="text-danger">
+                    {errors.first_name}
+                  </Form.Text>
+                  )}
+                </Form.Group>
+                <Form.Group className="mb-3" >
+                  <Form.Label>Last Name</Form.Label>
+                  <Form.Control type="text" placeholder="Last Name" name="last_name" value={values.last_name} onChange={handleChange} onBlur={handleBlur}/>
+                  {touched && errors &&  errors.last_name && (
+                    <Form.Text className="text-danger">
+                    {errors.last_name}
+                  </Form.Text>
+                  )}
+                </Form.Group>
+                <Form.Group className="mb-3" >
+        <Form.Label>Email address</Form.Label>
+        <Form.Control type="email" placeholder="Enter email" name="email" value={values.email} onChange={handleChange} onBlur={handleBlur}/>
+        {touched && errors &&  errors.email && (
+                    <Form.Text className="text-danger">
+                    {errors.email}
+                  </Form.Text>
+                  )}
+      </Form.Group>
+
+                <Button variant="primary" type="submit" className="me-3">
+                  Submit
+                </Button>
+                <Button variant="secondary" onClick={handleClose}>
+            Cancel
           </Button>
-          <Button variant="primary" onClick={handleClose}>
-            Save Changes
-          </Button>
-        </Modal.Footer>
+                </>
+              </form>
+            )}
+          </Formik>
+        </Modal.Body>
+       
       </Modal>
     </Container>
   );

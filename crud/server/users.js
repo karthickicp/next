@@ -1,4 +1,5 @@
 const url = require("url");
+const { parse } = require("querystring");
 let data = [
   {
     id: 1,
@@ -45,16 +46,15 @@ let data = [
 ];
 
 const usersApi = (req, res) => {
-  const reqUrl = req.url;
+  const reqUrl = url.parse(req.url);
   const headers = {
     "Access-Control-Allow-Origin": "*" /* @dev First, read about security */,
-    "Access-Control-Allow-Methods": "OPTIONS, POST, GET, DELETE",
+    "Access-Control-Allow-Methods": "POST, GET, DELETE",
     // "Access-Control-Max-Age": 2592000, // 30 days
     /** add other headers as per requirement */
   };
-  console.log(req, "req");
   //GET Users
-  if (reqUrl === "/users") {
+  if (reqUrl.pathname === "/users") {
     res.setHeader("Content-Type", "application/json");
     res.writeHead(200, headers);
     res.end(JSON.stringify(data));
@@ -62,14 +62,31 @@ const usersApi = (req, res) => {
 
   //DELETE User
 
-  if (reqUrl.includes("/user/delete")) {
-    let query = url.parse(reqUrl, "id").query;
-    let filteredData = data.filter((data) => data.id !== Number(query.id));
+  if (reqUrl.pathname === "/user/delete") {
+    let userId = url.parse(req.url, "id").query;
+    console.log(userId.id, "user id");
+    let filteredData = data.filter((data) => data.id !== Number(userId.id));
     data = filteredData;
-    console.log(data, "data");
     res.setHeader("Content-Type", "text/html");
     res.writeHead(200, headers);
     res.end("user is deleted");
+  }
+
+  // ADD User
+  if (req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk.toString()));
+    req.on("end", () => {
+      body = parse(body);
+      let newUser = { id: data.length + 1, ...body };
+      data.push(newUser);
+    });
+    res.setHeader("Content-Type", "text/html");
+    res.writeHead(200, headers);
+    res.end("new user added");
+  }
+  if (reqUrl.pathname === "/users/create") {
+    console.log(req, "req body");
   }
 };
 

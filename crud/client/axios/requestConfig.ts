@@ -5,6 +5,7 @@ export function getRequest(URL: string) {
 }
 
 export function postRequest(URL: string, payload: any) {
+    console.log(payload, "payload")
     return axiosClient.post(`/${URL}`, payload).then(response => response);
 }
 
