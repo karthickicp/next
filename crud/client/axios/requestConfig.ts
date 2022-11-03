@@ -6,7 +6,12 @@ export function getRequest(URL: string) {
 
 export function postRequest(URL: string, payload: any) {
     console.log(payload, "payload")
-    return axiosClient.post(`/${URL}`, payload).then(response => response);
+    return axiosClient({
+        method: "post",
+        url: `${URL}`,
+        data: payload
+    }).then(response => response)
+    // return axiosClient.post(`/${URL}`, payload).then(response => response);
 }
 
 export function deleteRequest(URL: string) {

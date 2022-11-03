@@ -49,7 +49,7 @@ const usersApi = (req, res) => {
   const reqUrl = url.parse(req.url);
   const headers = {
     "Access-Control-Allow-Origin": "*" /* @dev First, read about security */,
-    "Access-Control-Allow-Methods": "POST, GET, DELETE",
+    "Access-Control-Allow-Methods": "POST, GET, DELETE, PUT",
     // "Access-Control-Max-Age": 2592000, // 30 days
     /** add other headers as per requirement */
   };
@@ -57,37 +57,63 @@ const usersApi = (req, res) => {
   if (reqUrl.pathname === "/users") {
     res.setHeader("Content-Type", "application/json");
     res.writeHead(200, headers);
-    res.end(JSON.stringify(data));
+    return res.end(JSON.stringify(data));
   }
 
   //DELETE User
 
   if (reqUrl.pathname === "/user/delete") {
     let userId = url.parse(req.url, "id").query;
-    console.log(userId.id, "user id");
     let filteredData = data.filter((data) => data.id !== Number(userId.id));
     data = filteredData;
     res.setHeader("Content-Type", "text/html");
     res.writeHead(200, headers);
-    res.end("user is deleted");
+    return res.end("user is deleted");
   }
 
   // ADD User
-  if (req.method === "POST") {
+
+  if (reqUrl.pathname === "/users/create" && req.method === "POST") {
     let body = "";
     req.on("data", (chunk) => (body += chunk.toString()));
     req.on("end", () => {
-      body = parse(body);
+      body = JSON.parse(body);
+      console.log(body, " POST body");
       let newUser = { id: data.length + 1, ...body };
       data.push(newUser);
     });
     res.setHeader("Content-Type", "text/html");
     res.writeHead(200, headers);
-    res.end("new user added");
+    return res.end("new user added");
   }
-  if (reqUrl.pathname === "/users/create") {
-    console.log(req, "req body");
+
+  if (reqUrl.pathname === "/users/update") {
+    let body = "";
+    let userId = url.parse(req.url, "id").query;
+    req.on("data", (chunk) => (body += chunk.toString()));
+    req.on("end", () => {
+      // let reqBody = JSON.stringify(body);
+      // let result = JSON.parse(body);
+      console.log(body, "req body");
+      if (body) {
+        data.forEach((data) => {
+          if (data.id === Number(userId.id)) {
+            if (data.first_name !== body.first_name) {
+              data.first_name = body.first_name;
+            }
+            if (data.last_name !== body.last_name) {
+              data.last_name = body.last_name;
+            }
+            if (data.email !== body.email) {
+              data.email = body.email;
+            }
+          }
+        });
+      }
+      res.setHeader("Content-Type", "text/html");
+      res.writeHead(200, headers);
+      return res.end("user updated added");
+    });
   }
 };
-
 module.exports = usersApi;

@@ -3,13 +3,17 @@ import { useEffect, useState } from "react";
 import { Button, Container, Form, Modal, Table } from "react-bootstrap";
 import { deleteRequest, getRequest, postRequest } from "../axios/requestConfig";
 import { createEditModalProps, users } from "../types/users";
-import * as Yup from "yup"
+import * as Yup from "yup";
 import axios from "axios";
 export default function Home() {
   const [users, setUsers] = useState<users[] | []>([]);
+  const [createEditModal, setCreateEditModal] = useState<createEditModalProps>({
+    open: false,
+    type: "create",
+    user: null,
+  });
   const getInitialValues = () => {
     let initialValues: users = {
-      id: users.length + 1,
       first_name: "",
       last_name: "",
       email: "",
@@ -29,13 +33,11 @@ export default function Home() {
   const userValidationSchema = Yup.object({
     first_name: Yup.string().required("First name is requied"),
     last_name: Yup.string().required("Last name is requied"),
-    email: Yup.string().email("invalid email address").required("Email is requied")
-  })
-  const [createEditModal, setCreateEditModal] = useState<createEditModalProps>({
-    open: false,
-    type: "create",
-    user: null,
+    email: Yup.string()
+      .email("invalid email address")
+      .required("Email is requied"),
   });
+
   const getUsers = async () => {
     try {
       let usersData = await getRequest("/users");
@@ -59,13 +61,38 @@ export default function Home() {
     }
   };
   const createUser = async (user: users) => {
-    try{
-      console.log(user, "user")
-      let response = await postRequest('users/create', user)
-    }catch(err){
-      console.error(err)
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}users/create`, {
+        method: "POST",
+        body: JSON.stringify(user),
+      }).then((res) => {
+        if (res.status === 200) {
+          getUsers();
+        }
+      });
+    } catch (err) {
+      console.error(err);
     }
-  }
+  };
+
+  const updateUser = async (userId: number, user: users) => {
+    let id = "";
+    if (userId) {
+      id = `id=${userId}`;
+    }
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}users/update?${id}`, {
+        method: "PUT",
+        body: JSON.stringify(user),
+      }).then((res) => {
+        if (res.status === 200) {
+          getUsers();
+        }
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
   const handleClose = () => {
     setCreateEditModal((prev) => ({ ...prev, open: false }));
   };
@@ -108,8 +135,19 @@ export default function Home() {
                 <td>{data.email}</td>
                 <td>
                   <i
-                    className="bi bi-trash"
+                    className="bi bi-trash me-3"
                     onClick={() => deleteUser(data.id)}
+                  ></i>
+                  <i
+                    className="bi bi-pencil-fill"
+                    onClick={() =>
+                      setCreateEditModal((prev) => ({
+                        ...prev,
+                        open: true,
+                        user: data,
+                        type: "edit",
+                      }))
+                    }
                   ></i>
                 </td>
               </tr>
@@ -117,7 +155,7 @@ export default function Home() {
           </tbody>
         </Table>
       )}
-      <Modal show={createEditModal.open} onHide={handleClose} >
+      <Modal show={createEditModal.open} onHide={handleClose}>
         <Modal.Header closeButton>
           <Modal.Title>
             {createEditModal.type === "create" ? "Create User" : "Edit User"}
@@ -126,52 +164,86 @@ export default function Home() {
         <Modal.Body>
           <Formik
             initialValues={getInitialValues()}
-            validationSchema= {userValidationSchema}
-            onSubmit={(values) => axios.post('http://localhost:5000/users/create', values)}
+            validationSchema={userValidationSchema}
+            onSubmit={async (values) => {
+              if (createEditModal.type === "create") {
+                await createUser(values);
+              } else {
+                await updateUser(values.id, values);
+              }
+              handleClose();
+            }}
           >
-            {({ values, handleChange,handleSubmit, errors, handleBlur, touched }) => (
-              <form action="http://localhost:5000/users/create" method="POST">
+            {({
+              values,
+              handleChange,
+              handleSubmit,
+              errors,
+              handleBlur,
+              touched,
+            }) => (
+              <form onSubmit={handleSubmit}>
                 <>
-                <Form.Group className="mb-3" >
-                  <Form.Label>First Name</Form.Label>
-                  <Form.Control type="text" placeholder="First Name" name="first_name" value={values.first_name} onChange={handleChange} onBlur={handleBlur}/>
-                  {touched && errors &&  errors.first_name && (
-                    <Form.Text className="text-danger">
-                    {errors.first_name}
-                  </Form.Text>
-                  )}
-                </Form.Group>
-                <Form.Group className="mb-3" >
-                  <Form.Label>Last Name</Form.Label>
-                  <Form.Control type="text" placeholder="Last Name" name="last_name" value={values.last_name} onChange={handleChange} onBlur={handleBlur}/>
-                  {touched && errors &&  errors.last_name && (
-                    <Form.Text className="text-danger">
-                    {errors.last_name}
-                  </Form.Text>
-                  )}
-                </Form.Group>
-                <Form.Group className="mb-3" >
-        <Form.Label>Email address</Form.Label>
-        <Form.Control type="email" placeholder="Enter email" name="email" value={values.email} onChange={handleChange} onBlur={handleBlur}/>
-        {touched && errors &&  errors.email && (
-                    <Form.Text className="text-danger">
-                    {errors.email}
-                  </Form.Text>
-                  )}
-      </Form.Group>
+                  <Form.Group className="mb-3">
+                    <Form.Label>First Name</Form.Label>
+                    <Form.Control
+                      type="text"
+                      placeholder="First Name"
+                      name="first_name"
+                      value={values.first_name}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                    />
+                    {touched.first_name && errors && errors.first_name && (
+                      <Form.Text className="text-danger">
+                        {errors.first_name}
+                      </Form.Text>
+                    )}
+                  </Form.Group>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Last Name</Form.Label>
+                    <Form.Control
+                      type="text"
+                      placeholder="Last Name"
+                      name="last_name"
+                      value={values.last_name}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                    />
+                    {touched.last_name && errors && errors.last_name && (
+                      <Form.Text className="text-danger">
+                        {errors.last_name}
+                      </Form.Text>
+                    )}
+                  </Form.Group>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Email address</Form.Label>
+                    <Form.Control
+                      type="email"
+                      placeholder="Enter email"
+                      name="email"
+                      value={values.email}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                    />
+                    {touched.email && errors && errors.email && (
+                      <Form.Text className="text-danger">
+                        {errors.email}
+                      </Form.Text>
+                    )}
+                  </Form.Group>
 
-                <Button variant="primary" type="submit" className="me-3">
-                  Submit
-                </Button>
-                <Button variant="secondary" onClick={handleClose}>
-            Cancel
-          </Button>
+                  <Button variant="primary" type="submit" className="me-3">
+                    Submit
+                  </Button>
+                  <Button variant="secondary" onClick={handleClose}>
+                    Cancel
+                  </Button>
                 </>
               </form>
             )}
           </Formik>
         </Modal.Body>
-       
       </Modal>
     </Container>
   );
