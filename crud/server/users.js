@@ -57,7 +57,9 @@ const usersApi = (req, res) => {
   if (reqUrl.pathname === "/users") {
     res.setHeader("Content-Type", "application/json");
     res.writeHead(200, headers);
-    return res.end(JSON.stringify(data));
+    return res.end(
+      JSON.stringify({ data: data, message: "users list retrieved" })
+    );
   }
 
   //DELETE User
@@ -66,53 +68,51 @@ const usersApi = (req, res) => {
     let userId = url.parse(req.url, "id").query;
     let filteredData = data.filter((data) => data.id !== Number(userId.id));
     data = filteredData;
-    res.setHeader("Content-Type", "text/html");
+    res.setHeader("Content-Type", "application/josn");
     res.writeHead(200, headers);
-    return res.end("user is deleted");
+    return res.end(JSON.stringify({ message: "user deleted success" }));
   }
 
   // ADD User
 
   if (reqUrl.pathname === "/users/create" && req.method === "POST") {
     let body = "";
-    req.on("data", (chunk) => (body += chunk.toString()));
+    req.on("data", (chunk) => (body = chunk.toString()));
     req.on("end", () => {
       body = JSON.parse(body);
-      console.log(body, " POST body");
       let newUser = { id: data.length + 1, ...body };
       data.push(newUser);
     });
-    res.setHeader("Content-Type", "text/html");
+    res.setHeader("Content-Type", "application/json");
     res.writeHead(200, headers);
-    return res.end("new user added");
+    return res.end(JSON.stringify({ message: "new user added success" }));
   }
 
   if (reqUrl.pathname === "/users/update") {
-    let body = "";
+    let body;
     let userId = url.parse(req.url, "id").query;
-    req.on("data", (chunk) => (body += chunk.toString()));
+    req.on("data", (chunk) => (body = chunk.toString()));
     req.on("end", () => {
-      // let reqBody = JSON.stringify(body);
-      // let result = JSON.parse(body);
-      console.log(body, "req body");
       if (body) {
+        body = JSON.parse(body);
         data.forEach((data) => {
-          if (data.id === Number(userId.id)) {
-            if (data.first_name !== body.first_name) {
+          if (data.id == Number(userId.id)) {
+            if (data.first_name != body.first_name) {
               data.first_name = body.first_name;
             }
-            if (data.last_name !== body.last_name) {
+            if (data.last_name != body.last_name) {
               data.last_name = body.last_name;
             }
-            if (data.email !== body.email) {
+            if (data.email != body.email) {
               data.email = body.email;
             }
+            // console.log(data, "data");
           }
         });
       }
-      res.setHeader("Content-Type", "text/html");
-      res.writeHead(200, headers);
-      return res.end("user updated added");
+      res.setHeader("Content-Type", "application/json");
+      res.writeHead(201, headers);
+      return res.end(JSON.stringify({ message: "user updated success" }));
     });
   }
 };

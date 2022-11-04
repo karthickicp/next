@@ -4,7 +4,6 @@ import { Button, Container, Form, Modal, Table } from "react-bootstrap";
 import { deleteRequest, getRequest, postRequest } from "../axios/requestConfig";
 import { createEditModalProps, users } from "../types/users";
 import * as Yup from "yup";
-import axios from "axios";
 export default function Home() {
   const [users, setUsers] = useState<users[] | []>([]);
   const [createEditModal, setCreateEditModal] = useState<createEditModalProps>({
@@ -41,12 +40,12 @@ export default function Home() {
   const getUsers = async () => {
     try {
       let usersData = await getRequest("/users");
-      setUsers(usersData);
+      setUsers(usersData.data);
     } catch (err) {
       console.error(err);
     }
   };
-  const deleteUser = async (userId: number) => {
+  const deleteUser = async (userId: number | undefined) => {
     let id = "";
     if (userId) {
       id = `id=${userId}`;
@@ -75,7 +74,7 @@ export default function Home() {
     }
   };
 
-  const updateUser = async (userId: number, user: users) => {
+  const updateUser = async (userId: number | undefined, user: users) => {
     let id = "";
     if (userId) {
       id = `id=${userId}`;
@@ -85,7 +84,7 @@ export default function Home() {
         method: "PUT",
         body: JSON.stringify(user),
       }).then((res) => {
-        if (res.status === 200) {
+        if (res.status === 201) {
           getUsers();
         }
       });
